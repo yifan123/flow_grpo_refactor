@@ -15,7 +15,7 @@ from diffusers import StableDiffusion3Pipeline
 from diffusers.utils.torch_utils import is_compiled_module
 import numpy as np
 import flow_grpo.prompts
-import flow_grpo.rewards
+from flow_grpo.reward import multi_score
 from flow_grpo.stat_tracking import PerPromptStatTracker
 from flow_grpo.diffusers_patch.sd3_pipeline_with_logprob_s1 import pipeline_with_logprob
 from flow_grpo.diffusers_patch.sd3_sde_with_logprob_s1 import sde_step_with_logprob
@@ -464,8 +464,8 @@ def main(_):
     )
 
     # prepare prompt and reward fn
-    reward_fn = getattr(flow_grpo.rewards, 'multi_score')(accelerator.device, config.reward_fn)
-    eval_reward_fn = getattr(flow_grpo.rewards, 'multi_score')(accelerator.device, config.reward_fn)
+    reward_fn = multi_score(accelerator.device, config.reward_fn)
+    eval_reward_fn = multi_score(accelerator.device, config.reward_fn)
 
     if config.prompt_fn == "general_ocr":
         train_dataset = TextPromptDataset(config.dataset, 'train')

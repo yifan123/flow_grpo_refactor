@@ -29,7 +29,7 @@ def jpeg_compressibility():
     return _fn
 
 def aesthetic_score():
-    from flow_grpo.aesthetic_scorer import AestheticScorer
+    from .aesthetic_scorer import AestheticScorer
 
     scorer = AestheticScorer(dtype=torch.float32).cuda()
 
@@ -45,7 +45,7 @@ def aesthetic_score():
     return _fn
 
 def clip_score():
-    from flow_grpo.clip_scorer import ClipScorer
+    from .clip_scorer import ClipScorer
 
     scorer = ClipScorer(dtype=torch.float32).cuda()
 
@@ -59,7 +59,7 @@ def clip_score():
     return _fn
 
 def image_similarity_score(device):
-    from flow_grpo.clip_scorer import ClipScorer
+    from .clip_scorer import ClipScorer
 
     scorer = ClipScorer(device=device).cuda()
 
@@ -78,7 +78,7 @@ def image_similarity_score(device):
     return _fn
 
 def pickscore_score(device):
-    from flow_grpo.pickscore_scorer import PickScoreScorer
+    from .pickscore_scorer import PickScoreScorer
 
     scorer = PickScoreScorer(dtype=torch.float32, device=device)
 
@@ -93,7 +93,7 @@ def pickscore_score(device):
     return _fn
 
 def imagereward_score(device):
-    from flow_grpo.imagereward_scorer import ImageRewardScorer
+    from .imagereward_scorer import ImageRewardScorer
 
     scorer = ImageRewardScorer(dtype=torch.float32, device=device)
 
@@ -109,7 +109,7 @@ def imagereward_score(device):
     return _fn
 
 def qwenvl_score(device):
-    from flow_grpo.qwenvl import QwenVLScorer
+    from .qwenvl import QwenVLScorer
 
     scorer = QwenVLScorer(dtype=torch.bfloat16, device=device)
 
@@ -126,7 +126,7 @@ def qwenvl_score(device):
 
     
 def ocr_score(device):
-    from flow_grpo.ocr import OcrScorer
+    from .ocr import OcrScorer
 
     scorer = OcrScorer()
 
@@ -374,15 +374,15 @@ def unifiedreward_score_sglang(device):
         return results
 
     def _fn(images, prompts, metadata):
-        # 处理Tensor类型转换
+        # Handle Tensor type conversion
         if isinstance(images, torch.Tensor):
             images = (images * 255).round().clamp(0, 255).to(torch.uint8).cpu().numpy()
             images = images.transpose(0, 2, 3, 1)  # NCHW -> NHWC
         
-        # 转换为PIL Image并调整尺寸
+        # Convert to PIL Image and resize
         images = [Image.fromarray(image).resize((512, 512)) for image in images]
 
-        # 执行异步批量评估
+        # Execute asynchronous batch evaluation
         text_outputs = asyncio.run(evaluate_batch_image(images, prompts))
         score = _extract_scores(text_outputs)
         score = [sc/5.0 for sc in score]
@@ -466,6 +466,8 @@ def main():
     # Print the scores
     print("Scores:", scores)
 
+
+# Clean interface - only multi_score is exposed
 
 if __name__ == "__main__":
     main()
