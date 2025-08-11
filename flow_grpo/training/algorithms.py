@@ -184,7 +184,7 @@ class GRPOMixin:
             
             # Compute policy gradient loss
             ratio = torch.exp(current_log_probs - info["log_probs"].detach())
-            clipped_ratio = torch.clamp(ratio, 1.0 - self.config.train.cliprange, 1.0 + self.config.train.cliprange)
+            clipped_ratio = torch.clamp(ratio, 1.0 - self.config.train.clip_range, 1.0 + self.config.train.clip_range)
             
             loss = -torch.minimum(ratio * advantages, clipped_ratio * advantages).mean()
             
@@ -201,12 +201,24 @@ class GRPOMixin:
             self.optimizer.step()
             self.optimizer.zero_grad()
             
-        return {
+        # Calculate detailed training metrics like original scripts
+        kl_loss = 0.5 * torch.mean((current_log_probs - info["log_probs"].detach()) ** 2)
+        clipfrac = torch.mean((torch.abs(ratio - 1.0) > self.config.train.clip_range).float())
+        
+        training_metrics = {
             "loss": loss.item(),
+            "policy_loss": (-torch.minimum(ratio * advantages, clipped_ratio * advantages).mean()).item(),
             "mean_reward": rewards.mean(),
-            "std_reward": rewards.std(),
+            "std_reward": rewards.std(), 
             "mean_ratio": ratio.mean().item(),
+            "approx_kl": kl_loss.item(),
+            "clipfrac": clipfrac.item(),
         }
+        
+        if self.config.train.beta > 0:
+            training_metrics["kl_penalty"] = kl_penalty.item()
+            
+        return training_metrics
         
     def compute_loss(self, *args, **kwargs):
         """GRPO loss computation - handled in training_step."""

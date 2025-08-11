@@ -338,9 +338,25 @@ class BaseTrainer(ABC):
         
     def log_training_metrics(self, info, loss_info, global_step):
         """Log training metrics."""
+        # Convert lists to tensors and compute means
+        if isinstance(info, dict):
+            for key, value in info.items():
+                if isinstance(value, list) and len(value) > 0:
+                    if isinstance(value[0], torch.Tensor):
+                        info[key] = torch.mean(torch.stack(value))
+                    else:
+                        info[key] = np.mean(value)
+        
+        # Add loss info
         info.update(loss_info)
         info["global_step"] = global_step
-        self.accelerator.log(info, step=global_step)
+        
+        # Reduce across processes
+        info = self.accelerator.reduce(info, reduction="mean")
+        
+        # Log to wandb
+        if self.accelerator.is_main_process:
+            wandb.log(info, step=global_step)
         
     def cleanup(self):
         """Cleanup resources."""
